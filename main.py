@@ -13,7 +13,6 @@ from telethon.errors import FloodWaitError, SessionPasswordNeededError
 # Your existing API credentials (for downloading)
 API_ID = 29051835
 API_HASH = "e38f841a01353479a7323fc713c61b32"
-PHONE = '+855966816450'
 
 # Bot token from BotFather - YOU MUST REPLACE THIS
 BOT_TOKEN = "8207251826:AAEILrQblxB2i7eLRX10GCUlBW2-pgz52Ak"  # Get from @BotFather
@@ -24,7 +23,6 @@ ADMIN_IDS = [1867350927]  # Replace with your Telegram user ID
 # Folders
 DOWNLOAD_FOLDER = 'downloads'
 BOT_SESSION_NAME = 'bot_session'
-USER_SESSION_NAME = 'user_session'
 
 # Logging
 logging.basicConfig(
@@ -78,11 +76,8 @@ def format_file_size(size_bytes):
 # BOT INITIALIZATION
 # ========================
 
-# Bot client (for interacting with users)
+# Bot client (for interacting with users and downloading from accessible channels)
 bot = TelegramClient(BOT_SESSION_NAME, API_ID, API_HASH)
-
-# User client (for downloading from restricted channels)
-user_client = TelegramClient(USER_SESSION_NAME, API_ID, API_HASH)
 
 # ========================
 # BOT HANDLERS
@@ -102,10 +97,9 @@ async def start_handler(event):
     
     welcome_message = (
         "🤖 **Telegram Media Downloader Bot**\n\n"
-        "I can help you download media from Telegram channels, including:\n"
+        "I can help you download media from Telegram channels where I'm a member:\n"
         "• Public channels\n"
-        "• Private channels (you must be a member)\n"
-        "• Restricted content\n\n"
+        "• Private channels (if the bot is added)\n\n"
         "Choose an option below to get started:"
     )
     
@@ -151,8 +145,8 @@ async def help_callback(event):
         "   • Public channels: `t.me/channelname/123`\n"
         "   • Private channels: `t.me/c/1234567890/456`\n\n"
         "⚠️ **Requirements**:\n"
-        "   • You must be a member of private channels\n"
-        "   • The bot needs access to the content\n\n"
+        "   • The bot must be a member of private channels\n"
+        "   • The message must still exist\n\n"
         "📌 **Commands**:\n"
         "   • /start - Main menu\n"
         "   • /cancel - Cancel current operation\n"
@@ -218,7 +212,7 @@ async def handle_single_link(event, user_id, link):
     try:
         # Download the media
         success = await download_media_for_user(
-            user_client, 
+            bot,  # Use bot client instead of user_client
             link, 
             user_id, 
             status_msg
@@ -235,7 +229,7 @@ async def handle_single_link(event, user_id, link):
                 "❌ **Download Failed**\n\n"
                 "Could not download the media. Make sure:\n"
                 "• The link is valid\n"
-                "• You're a member of the channel\n"
+                "• The bot has access to the channel\n"
                 "• The message still exists",
                 buttons=[[Button.inline("🏠 Back to Menu", b"back_to_menu")]]
             )
@@ -296,7 +290,7 @@ async def process_download_queue(event, user_id):
             )
             
             success = await download_media_for_user(
-                user_client,
+                bot,  # Use bot client instead of user_client
                 link,
                 user_id,
                 None
@@ -332,10 +326,10 @@ async def process_download_queue(event, user_id):
 async def download_media_for_user(client, link, user_id, status_msg):
     """Download media and send to user."""
     try:
-        # Ensure user client is connected
+        # Ensure bot client is connected
         if not client.is_connected():
-            await client.start(phone=PHONE)
-            logger.info("User client started successfully")
+            await client.start(bot_token=BOT_TOKEN)
+            logger.info("Bot client started successfully")
         
         channel_ref, message_id, is_private = parse_telegram_link(link)
         
@@ -387,7 +381,7 @@ async def download_media_for_user(client, link, user_id, status_msg):
                 await status_msg.edit("📤 Sending file to you...")
             
             # Send the file
-            await bot.send_file(
+            await client.send_file(
                 user_id,
                 file_path,
                 caption=f"✅ Downloaded from: {link}\n"
@@ -470,7 +464,6 @@ async def admin_stats_callback(event):
         "📊 **Bot Statistics**\n\n"
         f"• Active users: {len(user_states)}\n"
         f"• Download queues: {len(download_queue)}\n"
-        f"• User client active: {user_client.is_connected()}\n"
         f"• Bot client active: {bot.is_connected()}\n"
     )
     
@@ -542,10 +535,6 @@ async def main():
         await bot.start(bot_token=BOT_TOKEN)
         logger.info("Bot started successfully")
         
-        # Start user client
-        await user_client.start(phone=PHONE)
-        logger.info(f"User client logged in as {PHONE}")
-        
         # Get bot info
         me = await bot.get_me()
         logger.info(f"Bot is running as @{me.username}")
@@ -554,14 +543,11 @@ async def main():
         logger.info("Bot is running...")
         await bot.run_until_disconnected()
         
-    except SessionPasswordNeededError:
-        logger.error("Two-factor authentication is enabled. Please check your Telegram app for the verification code.")
     except Exception as e:
         logger.error(f"Failed to start bot: {e}")
     finally:
-        # Disconnect clients
+        # Disconnect bot
         await bot.disconnect()
-        await user_client.disconnect()
         logger.info("Bot stopped")
 
 if __name__ == '__main__':
