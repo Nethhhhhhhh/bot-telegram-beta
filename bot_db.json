@@ -1,0 +1,25 @@
+{
+  "users": {
+    "1867350927": {
+      "history": [
+        {
+          "role": "user",
+          "content": "hii"
+        },
+        {
+          "role": "assistant",
+          "content": "Hello! How can I help you today?"
+        }
+      ]
+    }
+  },
+  "settings": {
+    "model": "openai/gpt-4.1",
+    "temperature": 0.4,
+    "donate_url": "https://buymeacoffee.com/yourname",
+    "support_en": "Email: support@example.com\nTelegram: @your_support_handle",
+    "support_km": "អ៊ីមែល៖ support@example.com\nតេលេក្រាម៖ @your_support_handle",
+    "system_prompt_en": "You are a helpful, concise assistant. Respond in natural, friendly English.",
+    "system_prompt_km": "អ្នកគឺជាជំនួយការដែលមានប្រយោជន៍ និងខ្លី។ សូមឆ្លើយជាភាសាខ្មែរ ដោយរាងកាយរួសរាយរាក់ទាក់។"
+  }
+}
